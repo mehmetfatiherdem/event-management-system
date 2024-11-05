@@ -1,3 +1,19 @@
+CREATE TABLE countries(
+    country_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    country_name VARCHAR(255) UNIQUE NOT NULL,
+    country_code VARCHAR(10) NOT NULL
+);
+
+CREATE TABLE phone_numbers (
+    phone_number_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    country_id UUID,
+    national_code VARCHAR(10),
+    subscriber_number VARCHAR(20) NOT NULL,
+    phone_number_extension VARCHAR(10),
+    FOREIGN KEY (country_id) REFERENCES countries(country_id) ON DELETE RESTRICT,
+    UNIQUE (country_id, national_code, subscriber_number)
+);
+
 CREATE TABLE users(
     user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     first_name VARCHAR(100) NOT NULL,
@@ -5,7 +21,7 @@ CREATE TABLE users(
     email VARCHAR(255) UNIQUE NOT NULL,
     phone_number_id UUID,
     role VARCHAR(50) DEFAULT 'user',
-
+    deleted_at TIMESTAMPTZ,
     FOREIGN KEY (phone_number_id) REFERENCES phone_numbers(phone_number_id)
 );
 
@@ -17,13 +33,12 @@ CREATE TABLE auth_methods(
 CREATE TABLE user_auth(
     user_id UUID,
     auth_method_id UUID,
-    
     PRIMARY KEY (user_id, auth_method_id),
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (auth_method_id) REFERENCES auth_methods(auth_method_id)
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (auth_method_id) REFERENCES auth_methods(auth_method_id) ON DELETE CASCADE
 );
 
-CREATE TABLE password_auth (
+CREATE TABLE password_auth(
     password_auth_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID,
     password_hash VARCHAR(255) NOT NULL,
@@ -36,19 +51,11 @@ CREATE TABLE event_type(
     event_type_name VARCHAR(255) UNIQUE NOT NULL
 );
 
------------------ global address design
-
-CREATE TABLE countries(
-    country_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    country_name VARCHAR(255) UNIQUE NOT NULL,
-    country_code VARCHAR(10) NOT NULL -- international dial code
-);
 
 CREATE TABLE states(
     state_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     state_name VARCHAR(255) NOT NULL,
     country_id UUID,
-
     FOREIGN KEY(country_id) REFERENCES countries(country_id)
 );
 
@@ -56,7 +63,6 @@ CREATE TABLE cities(
     city_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     city_name VARCHAR(255) NOT NULL,
     state_id UUID,
-
     FOREIGN KEY(state_id) REFERENCES states(state_id)
 );
 
@@ -68,28 +74,10 @@ CREATE TABLE addresses(
     state_id UUID,
     country_id UUID,
     postal_code VARCHAR(20),
-
-    FOREIGN KEY(city_id) REFERENCES cities(city_id),
-    FOREIGN KEY(state_id) REFERENCES states(state_id),
-    FOREIGN KEY(country_id) REFERENCES countries(country_id)
+    FOREIGN KEY(city_id) REFERENCES cities(city_id) ON DELETE RESTRICT,
+    FOREIGN KEY(state_id) REFERENCES states(state_id) ON DELETE RESTRICT,
+    FOREIGN KEY(country_id) REFERENCES countries(country_id) ON DELETE RESTRICT
 );
-
------------------
-
------------------ global phone number design
-
-CREATE TABLE phone_numbers (
-    phone_number_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    country_id UUID,
-    national_code VARCHAR(10), -- 415 for San Francisco
-    subscriber_number VARCHAR(20) NOT NULL,
-    extension VARCHAR(10),
-    
-    FOREIGN KEY (country_id) REFERENCES countries(country_id),
-    UNIQUE (country_id, national_code, subscriber_number)
-);
-
------------------
 
 CREATE TABLE venues(
     venue_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -97,7 +85,6 @@ CREATE TABLE venues(
     address_id UUID,
     capacity INT,
     phone_number_id UUID,
-
     FOREIGN KEY (address_id) REFERENCES addresses(address_id),
     FOREIGN KEY (phone_number_id) REFERENCES phone_numbers(phone_number_id)
 );
@@ -106,7 +93,6 @@ CREATE TABLE organizers(
     organizer_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     organizer_name VARCHAR(255) NOT NULL,
     phone_number_id UUID,
-
     FOREIGN KEY (phone_number_id) REFERENCES phone_numbers(phone_number_id)
 );
 
@@ -114,8 +100,12 @@ CREATE TABLE schedules(
     schedule_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     start_time TIMESTAMPTZ NOT NULL,
     end_time TIMESTAMPTZ NOT NULL,
-
     CHECK (end_time > start_time)
+);
+
+CREATE TABLE expense_type(
+    expense_type_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    expense_type_name VARCHAR(255) UNIQUE NOT NULL
 );
 
 CREATE TABLE events(
@@ -125,11 +115,10 @@ CREATE TABLE events(
     schedule_id UUID,
     venue_id UUID,
     organizer_id UUID,
-
-    FOREIGN KEY (event_type_id) REFERENCES event_type(event_type_id),
-    FOREIGN KEY (venue_id) REFERENCES venues(venue_id),
-    FOREIGN KEY (organizer_id) REFERENCES organizers(organizer_id),
-    FOREIGN KEY (schedule_id) REFERENCES schedules(schedule_id)
+    FOREIGN KEY (event_type_id) REFERENCES event_type(event_type_id) ON DELETE RESTRICT,
+    FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE RESTRICT,
+    FOREIGN KEY (organizer_id) REFERENCES organizers(organizer_id) ON DELETE RESTRICT,
+    FOREIGN KEY (schedule_id) REFERENCES schedules(schedule_id) ON DELETE RESTRICT
 );
 
 
@@ -137,17 +126,11 @@ CREATE TABLE guests(
     guest_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID,
     event_id UUID,
-    guest_status VARCHAR(20) DEFAULT 'invited', -- invited/attending/declined
-
+    guest_status VARCHAR(20) DEFAULT 'invited',
     FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (event_id) REFERENCES events(event_id)
+    FOREIGN KEY (event_id) REFERENCES events(event_id) ON DELETE CASCADE
 );
 
-
-CREATE TABLE expense_type(
-    expense_type_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    expense_type_name VARCHAR(255) UNIQUE NOT NULL
-);
 
 CREATE TABLE expenses(
     expense_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -155,7 +138,6 @@ CREATE TABLE expenses(
     expense_type_id UUID,
     amount NUMERIC,
     payment_status VARCHAR(20) DEFAULT 'pending',
-
-    FOREIGN KEY (event_id) REFERENCES events(event_id),
+    FOREIGN KEY (event_id) REFERENCES events(event_id) ON DELETE RESTRICT,
     FOREIGN KEY (expense_type_id) REFERENCES expense_type(expense_type_id)
 );
