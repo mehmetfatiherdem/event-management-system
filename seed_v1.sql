@@ -64,22 +64,22 @@ INSERT INTO users (first_name, last_name, email, phone_number_id) VALUES
      WHERE country_id = (SELECT country_id FROM countries WHERE country_name = 'India') 
      LIMIT 1));
 
-INSERT INTO auth_methods(method_name) VALUES 
+INSERT INTO auth_methods(auth_method_name) VALUES 
 ('password');
 
 INSERT INTO user_auth(user_id, auth_method_id) VALUES
-((SELECT u.user_id FROM users u WHERE u.user_id NOT IN (SELECT ua.user_id FROM user_auth ua) LIMIT 1), (SELECT auth_method_id FROM auth_methods WHERE auth_method_name = 'password')),
-((SELECT u.user_id FROM users u WHERE u.user_id NOT IN (SELECT ua.user_id FROM user_auth ua) LIMIT 1), (SELECT auth_method_id FROM auth_methods WHERE auth_method_name = 'password')),
-((SELECT u.user_id FROM users u WHERE u.user_id NOT IN (SELECT ua.user_id FROM user_auth ua) LIMIT 1), (SELECT auth_method_id FROM auth_methods WHERE auth_method_name = 'password')),
-((SELECT u.user_id FROM users u WHERE u.user_id NOT IN (SELECT ua.user_id FROM user_auth ua) LIMIT 1), (SELECT auth_method_id FROM auth_methods WHERE auth_method_name = 'password')),
-((SELECT u.user_id FROM users u WHERE u.user_id NOT IN (SELECT ua.user_id FROM user_auth ua) LIMIT 1), (SELECT auth_method_id FROM auth_methods WHERE auth_method_name = 'password'));
+((SELECT u.user_id FROM users u WHERE u.email = 'jdoe@gmail.com'), (SELECT auth_method_id FROM auth_methods WHERE auth_method_name = 'password')),
+((SELECT u.user_id FROM users u WHERE u.email = 'asmith@gmail.com'), (SELECT auth_method_id FROM auth_methods WHERE auth_method_name = 'password')),
+((SELECT u.user_id FROM users u WHERE u.email = 'mgonzalez@gmail.com'), (SELECT auth_method_id FROM auth_methods WHERE auth_method_name = 'password')),
+((SELECT u.user_id FROM users u WHERE u.email = 'cwang@gmail.com'), (SELECT auth_method_id FROM auth_methods WHERE auth_method_name = 'password')),
+((SELECT u.user_id FROM users u WHERE u.email = 'kpatel@gmail.com'), (SELECT auth_method_id FROM auth_methods WHERE auth_method_name = 'password'));
 
 INSERT INTO password_auth(user_id, password_hash, salt) VALUES
-((SELECT u.user_id FROM users u WHERE u.user_id NOT IN (SELECT pa.user_id FROM password_auth pa) LIMIT 1), 'tOtaLlySecuRe_sALt123#'),
-((SELECT u.user_id FROM users u WHERE u.user_id NOT IN (SELECT pa.user_id FROM password_auth pa) LIMIT 1), 'tOtaLlySecuRe_sALt123#'),
-((SELECT u.user_id FROM users u WHERE u.user_id NOT IN (SELECT pa.user_id FROM password_auth pa) LIMIT 1), 'tOtaLlySecuRe_sALt123#'),
-((SELECT u.user_id FROM users u WHERE u.user_id NOT IN (SELECT pa.user_id FROM password_auth pa) LIMIT 1), 'tOtaLlySecuRe_sALt123#'),
-((SELECT u.user_id FROM users u WHERE u.user_id NOT IN (SELECT pa.user_id FROM password_auth pa) LIMIT 1), 'tOtaLlySecuRe_sALt123#');
+((SELECT u.user_id FROM users u WHERE u.email = 'jdoe@gmail.com'), '12345', 'tOtaLlySecuRe_sALt123#'),
+((SELECT u.user_id FROM users u WHERE u.email = 'asmith@gmail.com'), '12345', 'tOtaLlySecuRe_sALt123#'),
+((SELECT u.user_id FROM users u WHERE u.email = 'mgonzalez@gmail.com'), '12345', 'tOtaLlySecuRe_sALt123#'),
+((SELECT u.user_id FROM users u WHERE u.email = 'cwang@gmail.com'), '12345', 'tOtaLlySecuRe_sALt123#'),
+((SELECT u.user_id FROM users u WHERE u.email = 'kpatel@gmail.com'), '12345', 'tOtaLlySecuRe_sALt123#');
 
 INSERT INTO event_type(event_type_name) VALUES
 ('concert'),
@@ -248,5 +248,36 @@ INSERT INTO provinces (province_name, country_id) VALUES
 
 INSERT INTO cities(city_name, state_id, province_id
 ) VALUES
-('Toronto', NULL, (SELECT province_id FROM provinces WHERE province_name = 'Ontario')); -- TODO: finish this
+('Toronto', NULL, (SELECT province_id FROM provinces WHERE province_name = 'Ontario')),
+('Austin', (SELECT state_id FROM states WHERE state_name = 'Texas'), NULL);
+
+INSERT INTO addresses(street, suburb, city_id, state_id, province_id, country_id, postal_code
+) VALUES
+('60 Queen St E', NULL, (SELECT city_id FROM cities WHERE city_name = 'Toronto'), NULL, (SELECT province_id FROM provinces WHERE province_name = 'Ontario'), (SELECT country_id FROM countries WHERE country_name = 'Canada'), 'M5C 2T3');
+
+INSERT INTO venues(venue_name, address_id, capacity, phone_number_id) VALUES
+('Harley Hall', (SELECT address_id FROM addresses WHERE country_id = (SELECT country_id FROM countries WHERE country_name = 'Canada' LIMIT 1)), 1000, (SELECT phone_number_id FROM phone_numbers WHERE country_id = (SELECT country_id FROM countries WHERE country_name = 'Canada' LIMIT 1)));
+
+INSERT INTO organizers(organizer_name, phone_number_id) VALUES
+('PEPSICO', (SELECT phone_number_id FROM phone_numbers WHERE country_id = (SELECT country_id FROM countries WHERE country_name = 'Canada' LIMIT 1)));
+
+
+INSERT INTO schedules(start_time, end_time) VALUES
+('2024-11-10 21:00:00+00', '2024-11-10 23:00:00+00');
+
+INSERT INTO expense_types(expense_type_name) VALUES
+('Marketing and Promotion');
+
+INSERT INTO events(event_name, event_type_id, schedule_id, venue_id, organizer_id) VALUES
+('Imagine Dragons Concert', (SELECT event_type_id FROM event_type WHERE event_type_name = 'concert'), (SELECT schedule_id FROM schedules LIMIT 1), (SELECT venue_id FROM venues WHERE venue_name = 'Harley Hall'), (SELECT organizer_id FROM organizers WHERE organizer_name = 'PEPSICO'));
+
+INSERT INTO guests(user_id, event_id) VALUES
+((SELECT user_id FROM users WHERE email = 'jdoe@gmail.com'), (SELECT event_id FROM events WHERE event_name = 'Imagine Dragons Concert' LIMIT 1));
+
+INSERT INTO currencies (currency_code, currency_name) VALUES
+('CAD', 'Canadian Dollars');
+
+INSERT INTO expenses(event_id, expense_type_id, amount, currency_id) VALUES
+((SELECT event_id FROM events WHERE event_name = 'Imagine Dragons Concert'), (SELECT expense_type_id FROM expense_types WHERE expense_type_name = 'Marketing and Promotion'), 80000, (SELECT currency_id FROM currencies WHERE currency_code = 'CAD'));
+
 

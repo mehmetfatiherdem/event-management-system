@@ -8,3 +8,8 @@ CREATE TABLE provinces(
 ALTER TABLE cities
 ADD COLUMN province_id UUID, ADD FOREIGN KEY (province_id) REFERENCES provinces(province_id);
 
+ALTER TABLE addresses
+ADD COLUMN province_id 
+UUID, ADD FOREIGN KEY 
+(province_id) REFERENCES
+provinces(province_id)
